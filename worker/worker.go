@@ -19,14 +19,14 @@ func (w *Worker) CollectStats() {
 	fmt.Println("Collect stats")
 }
 
-func (w *Worker) runTask() {
+func (w *Worker) RunTask() {
 	fmt.Println("Start and stop the task")
 }
 
-func (w *Worker) startTask() {
+func (w *Worker) StartTask() {
 	fmt.Println("Start the task")
 }
 
-func (w *Worker) stopTask() {
+func (w *Worker) StopTask() {
 	fmt.Println("Stop the task")
 }
