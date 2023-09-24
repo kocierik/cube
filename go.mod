@@ -28,5 +28,6 @@ require (
 
 require (
 	github.com/docker/docker v24.0.6+incompatible
+	github.com/go-chi/chi v1.5.5
 	github.com/stretchr/testify v1.8.4 // indirect
 )

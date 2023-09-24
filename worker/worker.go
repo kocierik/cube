@@ -92,3 +92,11 @@ func (w *Worker) StopTask(t task.Task) task.DockerResult {
 
 	return result
 }
+
+func (w *Worker) GetTasks() []*task.Task {
+	tasks := []*task.Task{}
+	for _, t := range w.Db {
+		tasks = append(tasks, t)
+	}
+	return tasks
+}
