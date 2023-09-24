@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"cube/stats"
 	"cube/task"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ type Worker struct {
 	Db        map[uuid.UUID]*task.Task
 	TaskCount int
 	Name      string
+	Stats     *stats.Stats
 }
 
 func (w *Worker) AddTask(t task.Task) {
@@ -23,7 +25,12 @@ func (w *Worker) AddTask(t task.Task) {
 }
 
 func (w *Worker) CollectStats() {
-	fmt.Println("I will collect stats")
+	for {
+		log.Println("Collecting stats")
+		w.Stats = stats.GetStats()
+		w.TaskCount = w.Stats.TaskCount
+		time.Sleep(15 * time.Second)
+	}
 }
 
 func (w *Worker) RunTask() task.DockerResult {

@@ -27,6 +27,7 @@ require (
 )
 
 require (
+	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/docker/docker v24.0.6+incompatible
 	github.com/go-chi/chi v1.5.5
 	github.com/stretchr/testify v1.8.4 // indirect
