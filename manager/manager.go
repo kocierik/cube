@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/golang-collections/collections/queue"
 	"github.com/google/uuid"
 )
@@ -23,6 +25,13 @@ type Manager struct {
 	LastWorker    int
 }
 
+type Api struct {
+	Address string
+	Port    int
+	Manager *Manager
+	Router  *chi.Mux
+}
+
 func (m *Manager) SelectWorker() string {
 	var newWorker int
 	if m.LastWorker+1 < len(m.Workers) {
@@ -35,7 +44,7 @@ func (m *Manager) SelectWorker() string {
 	return m.Workers[newWorker]
 }
 
-func (m *Manager) UpdateTasks() {
+func (m *Manager) updateTasks() {
 	for _, worker := range m.Workers {
 		log.Printf("Checking worker %v for task updates", worker)
 		url := fmt.Sprintf("http://%s/tasks", worker)
@@ -66,6 +75,16 @@ func (m *Manager) UpdateTasks() {
 			m.TaskDb[t.ID].FinishTime = t.FinishTime
 			m.TaskDb[t.ID].ContainerID = t.ContainerID
 		}
+	}
+}
+
+func (m *Manager) UpdateTasks() {
+	for {
+		log.Println("Checking for task updates from workers")
+		m.updateTasks()
+		log.Println("Task updates completed")
+		log.Println("Sleeping for 15 seconds")
+		time.Sleep(15 * time.Second)
 	}
 }
 
@@ -119,8 +138,27 @@ func (m *Manager) SendWork() {
 	}
 }
 
+func (m *Manager) ProcessTasks() {
+	for {
+		log.Println("Processing any tasks in the queue")
+		m.SendWork()
+		log.Println("Sleeping for 10 seconds")
+		time.Sleep(10 * time.Second)
+	}
+}
+
 func (m *Manager) AddTask(te task.TaskEvent) {
 	m.Pending.Enqueue(te)
+}
+
+func (m *Manager) GetTasks() []task.Task {
+	tasks := make([]task.Task, 0, len(m.TaskDb))
+
+	for _, t := range m.TaskDb {
+		tasks = append(tasks, *t)
+	}
+
+	return tasks
 }
 
 func New(workers []string) *Manager {

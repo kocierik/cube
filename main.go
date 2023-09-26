@@ -6,7 +6,6 @@ import (
 	"cube/worker"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/golang-collections/collections/queue"
 	"github.com/google/uuid"
@@ -15,62 +14,43 @@ import (
 func main() {
 	// host := os.Getenv("CUBE_HOST")
 	// port, _ := strconv.Atoi(os.Getenv("5555"))
-	host := "localhost"
-	port := 5555
-	fmt.Println("Starting Cube worker")
+	// mhost := os.Getenv("CUBE_MANAGER_HOST")
+	// mport, _ := strconv.Atoi(os.Getenv("CUBE_MANAGER_PORT"))
+	mHost := "localhost"
+	mPort := 5556
+	wHost := "localhost"
+	wPort := 5555
+
 	w := worker.Worker{
+		Name:  "worker-1",
 		Queue: *queue.New(),
 		Db:    make(map[uuid.UUID]*task.Task),
 	}
-	api := worker.Api{Address: host, Port: port, Worker: &w}
-	go runTasks(&w)
+
+	wApi := worker.Api{
+		Address: wHost,
+		Port:    wPort,
+		Worker:  &w,
+	}
+
+	log.Printf("starting Cube worker at %s:%d", wHost, wPort)
+
+	go w.RunTasks()
 	go w.CollectStats()
-	go api.Start()
+	go wApi.Start()
 
-	workers := []string{fmt.Sprintf("%s:%d", host, port)}
+	workers := []string{fmt.Sprintf("%s:%d", wHost, wPort)}
 	m := manager.New(workers)
-	for i := 0; i < 3; i++ {
-		t := task.Task{
-			ID:    uuid.New(),
-			Name:  fmt.Sprintf("test-container-%d", i),
-			State: task.Scheduled,
-			Image: "strm/helloworld-http",
-		}
-		te := task.TaskEvent{
-			ID:    uuid.New(),
-			State: task.Running,
-			Task:  t,
-		}
-		m.AddTask(te)
-		m.SendWork()
+	mApi := manager.Api{
+		Address: mHost,
+		Port:    mPort,
+		Manager: m,
 	}
 
-	go func() {
-		for {
-			fmt.Printf("[Manager] Updating tasks from %d workers\n", len(m.Workers))
-			m.UpdateTasks()
-			time.Sleep(15 * time.Second)
-		}
-	}()
-	for {
-		for _, t := range m.TaskDb {
-			fmt.Printf("[Manager] Task: id: %s, state: %d\n", t.ID, t.State)
-			time.Sleep(15 * time.Second)
-		}
-	}
-}
+	log.Printf("starting Cube manager at %s:%d", mHost, mPort)
 
-func runTasks(w *worker.Worker) {
-	for {
-		if w.Queue.Len() != 0 {
-			result := w.RunTask()
-			if result.Error != nil {
-				log.Printf("Error running task: %v\n", result.Error)
-			}
-		} else {
-			log.Printf("No tasks to process currently.\n")
-		}
-		log.Println("Sleeping for 10 seconds.")
-		time.Sleep(10 * time.Second)
-	}
+	go m.ProcessTasks()
+	go m.UpdateTasks()
+
+	mApi.Start()
 }
