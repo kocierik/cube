@@ -201,8 +201,10 @@ func New(workers []string, schedulerType string) *Manager {
 	switch schedulerType {
 	case "roundrobin":
 		s = &scheduler.RoundRobin{Name: "roundrobin"}
+	case "epvm":
+		s = &scheduler.Epvm{Name: "epvm"}
 	default:
-		fmt.Printf("unsupported scheduler type")
+		fmt.Printf("unsupported scheduler type, must be either 'roundrobin' or 'epvm'")
 		return nil
 	}
 	return &Manager{
