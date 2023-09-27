@@ -5,7 +5,6 @@ import (
 	"cube/task"
 	"cube/worker"
 	"fmt"
-	"log"
 
 	"github.com/golang-collections/collections/queue"
 	"github.com/google/uuid"
@@ -16,43 +15,54 @@ func main() {
 	// port, _ := strconv.Atoi(os.Getenv("5555"))
 	// mhost := os.Getenv("CUBE_MANAGER_HOST")
 	// mport, _ := strconv.Atoi(os.Getenv("CUBE_MANAGER_PORT"))
-	mHost := "localhost"
-	mPort := 5556
-	wHost := "localhost"
-	wPort := 5555
+	mhost := "localhost"
+	mport := 5556
+	whost := "localhost"
+	wport := 5555
 
-	w := worker.Worker{
-		Name:  "worker-1",
+	fmt.Println("Starting Cube worker")
+
+	w1 := worker.Worker{
 		Queue: *queue.New(),
 		Db:    make(map[uuid.UUID]*task.Task),
 	}
-
-	wApi := worker.Api{
-		Address: wHost,
-		Port:    wPort,
-		Worker:  &w,
+	wapi1 := worker.Api{Address: whost, Port: wport, Worker: &w1}
+	w2 := worker.Worker{
+		Queue: *queue.New(),
+		Db:    make(map[uuid.UUID]*task.Task),
 	}
-
-	log.Printf("starting Cube worker at %s:%d", wHost, wPort)
-
-	go w.RunTasks()
-	go w.CollectStats()
-	go w.UpdateTasks()
-	go wApi.Start()
-
-	workers := []string{fmt.Sprintf("%s:%d", wHost, wPort)}
-	m := manager.New(workers)
-	mApi := manager.Api{
-		Address: mHost,
-		Port:    mPort,
-		Manager: m,
+	wapi2 := worker.Api{Address: whost, Port: wport + 1, Worker: &w2}
+	w3 := worker.Worker{
+		Queue: *queue.New(),
+		Db:    make(map[uuid.UUID]*task.Task),
 	}
+	wapi3 := worker.Api{Address: whost, Port: wport + 2, Worker: &w3}
 
-	log.Printf("starting Cube manager at %s:%d", mHost, mPort)
+	go w1.RunTasks()
+	go w1.UpdateTasks()
+	go wapi1.Start()
+
+	go w2.RunTasks()
+	go w2.UpdateTasks()
+	go wapi2.Start()
+
+	go w3.RunTasks()
+	go w3.UpdateTasks()
+	go wapi3.Start()
+
+	fmt.Println("Starting Cube manager")
+
+	workers := []string{
+		fmt.Sprintf("%s:%d", whost, wport),
+		fmt.Sprintf("%s:%d", whost, wport+1),
+		fmt.Sprintf("%s:%d", whost, wport+2),
+	}
+	m := manager.New(workers, "roundrobin")
+	mapi := manager.Api{Address: mhost, Port: mport, Manager: m}
 
 	go m.ProcessTasks()
 	go m.UpdateTasks()
 	go m.DoHealthChecks()
 
-	mApi.Start()
+	mapi.Start()
 }
