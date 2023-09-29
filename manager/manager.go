@@ -221,29 +221,30 @@ func (m *Manager) GetTasks() []*task.Task {
 }
 
 func New(workers []string, schedulerType string, dbType string) *Manager {
+
 	workerTaskMap := make(map[string][]uuid.UUID)
 	taskWorkerMap := make(map[uuid.UUID]string)
-	for worker := range workers {
-		workerTaskMap[workers[worker]] = []uuid.UUID{}
-	}
+
 	var nodes []*node.Node
 	for worker := range workers {
 		workerTaskMap[workers[worker]] = []uuid.UUID{}
+
 		nAPI := fmt.Sprintf("http://%v", workers[worker])
 		n := node.NewNode(workers[worker], nAPI, "worker")
 		nodes = append(nodes, n)
 	}
+
 	var s scheduler.Scheduler
 	switch schedulerType {
-	case "roundrobin":
-		s = &scheduler.RoundRobin{Name: "roundrobin"}
 	case "epvm":
 		s = &scheduler.Epvm{Name: "epvm"}
+	case "roundrobin":
+		s = &scheduler.RoundRobin{Name: "roundrobin"}
 	default:
-		fmt.Printf("unsupported scheduler type, must be either 'roundrobin' or 'epvm'")
-		return nil
+		s = &scheduler.Epvm{Name: "wpvm"}
 	}
-	m := Manager{
+
+	m := &Manager{
 		Pending:       *queue.New(),
 		Workers:       workers,
 		WorkerTaskMap: workerTaskMap,
@@ -251,16 +252,32 @@ func New(workers []string, schedulerType string, dbType string) *Manager {
 		WorkerNodes:   nodes,
 		Scheduler:     s,
 	}
+
 	var ts store.Store
 	var es store.Store
+	var errTaskDb error
+	var errEventsDb error
+
 	switch dbType {
 	case "memory":
 		ts = store.NewInMemoryTaskStore()
 		es = store.NewInMemoryTaskEventStore()
+	case "persistent":
+		ts, errTaskDb = store.NewTaskStore("tasks.db", 0600, "tasks")
+		es, errEventsDb = store.NewEventStore("events.db", 0600, "events")
 	}
+
+	if errTaskDb != nil {
+		log.Fatalf("unable to create task store: %v", errTaskDb)
+	}
+	if errEventsDb != nil {
+		log.Fatalf("unable to create task event store: %v", errEventsDb)
+	}
+
 	m.TaskDb = ts
 	m.EventDb = es
-	return &m
+
+	return m
 }
 
 func (m *Manager) restartTask(t *task.Task) {

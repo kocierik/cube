@@ -18,13 +18,13 @@ func main() {
 
 	fmt.Println("Starting Cube worker")
 
-	w1 := worker.New("worker-1", "memory")
+	w1 := worker.New("worker-1", "persistent")
 	wapi1 := worker.Api{Address: whost, Port: wport, Worker: w1}
 
-	w2 := worker.New("worker-2", "memory")
+	w2 := worker.New("worker-2", "persistent")
 	wapi2 := worker.Api{Address: whost, Port: wport + 1, Worker: w2}
 
-	w3 := worker.New("worker-3", "memory")
+	w3 := worker.New("worker-3", "persistent")
 	wapi3 := worker.Api{Address: whost, Port: wport + 2, Worker: w3}
 
 	go w1.RunTasks()
@@ -47,7 +47,7 @@ func main() {
 		fmt.Sprintf("%s:%d", whost, wport+2),
 	}
 
-	m := manager.New(workers, "epvm", "memory")
+	m := manager.New(workers, "epvm", "persistent")
 	mapi := manager.Api{Address: mhost, Port: mport, Manager: m}
 
 	go m.ProcessTasks()

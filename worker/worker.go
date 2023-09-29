@@ -92,10 +92,10 @@ func (w *Worker) runTask() task.DockerResult {
 			dockerResult = w.StopTask(taskQueued)
 		default:
 			fmt.Printf("This is a mistake. taskPersisted: %v, taskQueued: %v\n", taskPersisted, taskQueued)
-			dockerResult.Error = errors.New("We should not get here")
+			dockerResult.Error = errors.New("we should not get here")
 		}
 	} else {
-		err := fmt.Errorf("Invalid transition from %v to %v", taskPersisted.State, taskQueued.State)
+		err := fmt.Errorf("invalid transition from %v to %v", taskPersisted.State, taskQueued.State)
 		dockerResult.Error = err
 		return dockerResult
 	}
